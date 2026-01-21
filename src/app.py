@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, People, Planet, FavoritePeople, FavoritePlanet
 #from models import Person
 
 app = Flask(__name__)
@@ -44,6 +44,96 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+
+
+
+
+@app.route("/people", methods=['GET'])
+def get_people():
+    people = People.query.all()
+    return jsonify([person.serialize() for person in people]), 200
+
+@app.route("/people/<int:people_id>", methods=['GET'])
+def get_one_people(people_id):
+    person = People.query.get(people_id)
+    if person is None:
+        return jsonify({"error": "Person not found"}), 404
+    return jsonify(person.serialize()), 200
+
+
+
+
+@app.route("/planet", methods=['GET'])
+def get_planets():
+    planets = Planet.query.all()
+    return jsonify([planet.serialize() for planet in planets]), 200
+
+
+@app.route("/planet/<int:planet_id>", methods=['GET'])
+def get_one_planet(planet_id):
+    planet = Planet.query.get(planet_id)
+    if planet is None:
+        return jsonify({"error": "Planet not found"}), 404
+    return jsonify(planet.serialize()), 200
+
+
+
+
+
+@app.route("/users", methods=['GET'])
+def get_users():
+    users = User.query.all()
+    return jsonify([user.serialize() for user in users]), 200
+
+
+@app.route("/users/favorites", methods=['GET'])
+def get_user_favorites():
+    user = User.query.get(user_id)
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+
+    favorite_people = [fav.serialize() for fav in user.favorite_people]
+    favorite_planets = [fav.serialize() for fav in user.favorite_planets]
+
+    return jsonify({
+        "favorite_people": favorite_people,
+        "favorite_planets": favorite_planets
+    }), 200
+
+
+@app.route("/favorite/people/<int:people_id>", methods=['POST'])
+def add_favorite_people(people_id):
+    user_id = request.args.get("user_id")
+    user = User.query.get(user_id)
+    people = People.query.get(people_id)
+
+    if user is None or people is None:
+        return jsonify({"error": "User or People not found"}), 404
+
+    favorite = FavoritePeople(user_id=user.id, people_id=people.id)
+    db.session.add(favorite)
+    db.session.commit()
+
+    return jsonify({"message": "Favorite person added"}), 201
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
